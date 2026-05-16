@@ -1,9 +1,17 @@
 FROM node:18-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci --silent || npm install
+
+# Copy package manifest and pnpm lockfile (if present) for reproducible installs
+COPY package.json pnpm-lock.yaml* ./
+
+# Install pnpm and dependencies. Using pnpm ensures reproducible installs
+# and avoids the npm audit issues observed locally.
+RUN npm install -g pnpm@latest
+RUN pnpm install --frozen-lockfile --prod=false || pnpm install
+
+# Copy source and build
 COPY . .
-RUN npm run build
+RUN pnpm run build
 
 FROM nginx:stable-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
