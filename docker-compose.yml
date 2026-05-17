@@ -1,0 +1,51 @@
+services:
+  frontend:
+    build: ./frontend
+    image: spa-frontend:1.0
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_BASE=http://backend:8080/api
+    depends_on:
+      - backend
+    networks:
+      - spa-net
+
+  backend:
+    build: ./backend
+    image: spa-backend:1.0
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/spa_db
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - spa-net
+
+  db:
+    image: mysql:8
+    container_name: spa-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: spa_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - spa-net
+
+volumes:
+  mysql_data:
+
+networks:
+  spa-net:
